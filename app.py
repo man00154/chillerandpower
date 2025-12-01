@@ -182,8 +182,8 @@ if menu == "Chillers":
     chillers = data["chillers"]  # list of 30 items: CH-1 ... CH-30
 
     NUM_CHILLERS = len(chillers)          # should be 30
-    CHILLERS_PER_ROW = 10                 # 10 columns
-    rows = (NUM_CHILLERS + CHILLERS_PER_ROW - 1) // CHILLERS_PER_ROW  # 3 rows
+    CHILLERS_PER_ROW = 10                 # 10 columns → 3 rows
+    rows = (NUM_CHILLERS + CHILLERS_PER_ROW - 1) // CHILLERS_PER_ROW
 
     for row in range(rows):
         cols = st.columns(CHILLERS_PER_ROW)
@@ -194,7 +194,6 @@ if menu == "Chillers":
 
             ch = chillers[ch_id]
             sim = simulate_chiller(ch)
-
             col = cols[col_idx]
 
             # Blue header
@@ -451,7 +450,6 @@ elif menu == "Alarms & Events":
         for al in filtered:
             explanation = explain_alarm(al)
 
-            # choose color by severity
             if al["severity"] == "Critical":
                 sev_color = "#f97373"
             elif al["severity"] == "Major":
