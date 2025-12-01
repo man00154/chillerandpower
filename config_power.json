@@ -1,0 +1,15 @@
+{
+  "transformers": [
+    { "name": "TR1", "status": "ON" },
+    { "name": "TR2", "status": "OFF" },
+    { "name": "TR3", "status": "ON" }
+  ],
+  "ups": [
+    { "name": "UPS1", "status": "ON" },
+    { "name": "UPS2", "status": "ON" }
+  ],
+  "genset": [
+    { "name": "G1", "status": "OFF" },
+    { "name": "G2", "status": "OFF" }
+  ]
+}
