@@ -1,30 +1,47 @@
 import io
-from google.cloud import speech_v1p1beta1 as speech
-import pyttsx3
+import speech_recognition as sr
+from gtts import gTTS
 
 
-def transcribe_google(raw_bytes):
-    client = speech.SpeechClient()
+def transcribe_voice(raw_bytes: bytes) -> str:
+    """
+    Use SpeechRecognition + free Google Web Speech API to transcribe audio.
+    No API key required, but requires internet and fair-use limits.
 
-    audio = speech.RecognitionAudio(content=raw_bytes)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        language_code="en-US"
-    )
+    Expecting raw WAV bytes from Streamlit file uploader.
+    """
+    if not raw_bytes:
+        return ""
 
-    response = client.recognize(config=config, audio=audio)
+    recognizer = sr.Recognizer()
 
-    text = ""
-    for result in response.results:
-        text += result.alternatives[0].transcript
+    # Wrap raw bytes as a file-like object for AudioFile
+    audio_file = sr.AudioFile(io.BytesIO(raw_bytes))
 
-    return text
+    with audio_file as source:
+        audio = recognizer.record(source)
+
+    try:
+        text = recognizer.recognize_google(audio)
+        return text.strip()
+    except sr.UnknownValueError:
+        # Speech unintelligible
+        return ""
+    except sr.RequestError as e:
+        # API unreachable or rate-limited
+        return f"[STT request error: {e}]"
 
 
-def tts_play(text):
-    engine = pyttsx3.init()
-    engine.save_to_file(text, "reply.wav")
-    engine.runAndWait()
+def tts_voice(text: str) -> bytes:
+    """
+    Use gTTS (Google Translate Text-to-Speech) to synthesize speech.
+    No API key is needed. Returns MP3 audio bytes.
+    """
+    if not text:
+        text = "I do not have anything to say."
 
-    with open("reply.wav", "rb") as f:
-        return f.read()
+    tts = gTTS(text=text, lang="en")
+    buf = io.BytesIO()
+    tts.write_to_fp(buf)
+    buf.seek(0)
+    return buf.read()
