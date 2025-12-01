@@ -1,0 +1,7 @@
+{
+  "chillers": [
+    { "name": "CH-1", "status": "OFF", "setpoint": 21 },
+    { "name": "CH-2", "status": "OFF", "setpoint": 21 },
+    { "name": "CH-3", "status": "OFF", "setpoint": 21 }
+  ]
+}
