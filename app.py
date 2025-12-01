@@ -484,4 +484,4 @@ elif menu == "Alarms & Events":
                     </div>
                     <div style='margin-top:4px; color:#93c5fd; font-size:13px;'>
                         <b>Recommended action:</b> {explanation["action"]}
-::contentReference[oaicite:0]{index=0}
+
