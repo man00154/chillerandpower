@@ -176,68 +176,68 @@ st.sidebar.markdown(
 # CHILLER DASHBOARD – 30 chillers, 3×10 grid
 # -------------------------------------------------------------
 if menu == "Chillers":
-    st.title(" Chiller Dashboard- MANISH SINGH")
+    st.header("Chiller Plant – 30 Units (3 × 10 Grid)")
 
-    data = get_chiller_data()
-    chillers = data["chillers"]
+NUM_CHILLERS = 30
+CHILLERS_PER_ROW = 10
 
-    # 3 columns × 10 rows for 30 chillers
-    cols_per_row = 3
-    rows = len(chillers) // cols_per_row + (1 if len(chillers) % cols_per_row else 0)
+for row in range(3):
+    cols = st.columns(CHILLERS_PER_ROW)
+    for col_idx in range(CHILLERS_PER_ROW):
+        ch_id = row * CHILLERS_PER_ROW + col_idx + 1
+        ch = config["chillers"][ch_id - 1]
+        sim = simulate_chiller_readings(ch["setpoint"])
+        col = cols[col_idx]
 
-    for i in range(rows):
-        row = st.columns(cols_per_row)
-        for j in range(cols_per_row):
-            idx = i * cols_per_row + j
-            if idx >= len(chillers):
-                break
+        # Blue header
+        col.markdown(
+            f"<div style='background:#004b80;color:white;text-align:center;"
+            f"padding:4px;font-size:12px;font-weight:bold;'>CH-{ch_id:02d}</div>",
+            unsafe_allow_html=True,
+        )
 
-            ch = chillers[idx]
-            sim = simulate_chiller(ch)
+        # Status bar
+        color = "#00aa00" if ch["status"] == "ON" else "#aa0000"
+        col.markdown(
+            f"<div style='background:{color};color:white;text-align:center;"
+            f"padding:4px;font-size:12px;'>STATUS: {ch['status']}</div>",
+            unsafe_allow_html=True,
+        )
 
-            with row[j]:
-                st.markdown(
-                    f"""
-                    <div style='background:#111827; padding:14px; border-radius:10px;
-                                border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
-                        <h4 style='color:#e5e7eb; text-align:center; margin-bottom:4px;'>{ch["name"]}</h4>
-                        <div style='text-align:center; margin-bottom:6px;'>
-                            Status: {status_badge(ch["status"])}
-                        </div>
-                        <hr style='border:1px solid #1f2937;'>
-                        <p style='color:#d1d5db; font-size:13px;'>
-                            <b>Setpoint:</b> {ch["setpoint"]} °C<br>
-                            <b>Supply Temp:</b> {sim["supply"]} °C<br>
-                            <b>Inlet Temp:</b> {sim["inlet"]} °C<br>
-                            <b>Outlet Temp:</b> {sim["outlet"]} °C<br>
-                            <b>Ambient Temp:</b> {sim["ambient"]} °C<br>
-                            <b>Comp-1:</b> {sim["comp1"]}%<br>
-                            <b>Comp-2:</b> {sim["comp2"]}%<br>
-                            <b>Power:</b> {sim["power"]} kW<br>
-                            <b>Flow:</b> {sim["flow"]} m³/hr<br>
-                        </p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        # Data panel
+        col.markdown(
+            f"""
+            <div style='background:#111;padding:6px;font-size:11px;color:#ddd;'>
+                <b>Setpoint:</b> {ch['setpoint']}°C<br>
+                <b>Supply:</b> {sim['supply_temp']}°C<br>
+                <b>Inlet:</b> {sim['inlet_temp']}°C<br>
+                <b>Outlet:</b> {sim['outlet_temp']}°C<br>
+                <b>Ambient:</b> {sim['ambient_temp']}°C<br>
+                <b>Comp-1:</b> {sim['comp1']}%<br>
+                <b>Comp-2:</b> {sim['comp2']}%<br>
+                <b>Power:</b> {sim['power_kw']} kW<br>
+                <b>Flow:</b> {sim['water_flow']} m³/hr<br>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-                c1, c2 = st.columns([1, 2])
-                with c1:
-                    if st.button("Toggle", key=f"chg_{idx}"):
-                        data = toggle_chiller(data, idx)
-                        st.rerun()
-                with c2:
-                    new_sp = st.slider(
-                        f"SP {ch['name']}",
-                        min_value=16.0,
-                        max_value=26.0,
-                        value=float(ch["setpoint"]),
-                        step=0.1,
-                        key=f"sp_{idx}",
-                    )
-                    if new_sp != ch["setpoint"]:
-                        data = update_setpoint(data, idx, new_sp)
+        # Toggle button
+        if col.button(f"Toggle CH-{ch_id}", key=f"toggle_{ch_id}"):
+            ch["status"] = simulate_toggle_status(ch["status"])
+            config["chillers"][ch_id - 1] = ch
+            save_chiller_config(config)
+            st.rerun()
 
+        # Setpoint input
+        new_sp = col.number_input(
+            f"SP CH-{ch_id}", 16.0, 26.0, ch["setpoint"], 0.1,
+            key=f"sp_{ch_id}"
+        )
+        if new_sp != ch["setpoint"]:
+            ch["setpoint"] = new_sp
+            config["chillers"][ch_id - 1] = ch
+            save_chiller_config(config)
 
 # -------------------------------------------------------------
 # POWER CONTROL DASHBOARD – 7×1 TR, 7×1 G, 4×1 UPS, 4×1 PAHU
