@@ -40,11 +40,24 @@ def _ensure_power():
         with open(CONFIG_POWER, "r") as f:
             return json.load(f)
 
+    # 10 transformers: TR1–TR10
     transformers = [{"name": f"TR{i}", "status": "ON"} for i in range(1, 11)]
-    ups = [{"name": f"UPS{i}", "status": "ON"} for i in range(1, 6)]
-    genset = [{"name": f"G{i}", "status": "OFF"} for i in range(1, 11)]
 
-    data = {"transformers": transformers, "ups": ups, "genset": genset}
+    # 4 UPS: UPS1–UPS4
+    ups = [{"name": f"UPS{i}", "status": "ON"} for i in range(1, 5)]
+
+    # 7 Gensets: G1–G7
+    genset = [{"name": f"G{i}", "status": "OFF"} for i in range(1, 8)]
+
+    # 4 PAHU units: PAHU1–PAHU4
+    pahu = [{"name": f"PAHU{i}", "status": "ON"} for i in range(1, 5)]
+
+    data = {
+        "transformers": transformers,
+        "ups": ups,
+        "genset": genset,
+        "pahu": pahu,
+    }
     save_power(data)
     return data
 
