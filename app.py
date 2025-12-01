@@ -1,45 +1,179 @@
+import re
 import streamlit as st
+
 from chiller_manager import get_chiller_data, toggle_chiller, update_setpoint
 from power_manager import (
-    get_power_data, toggle_transformer, toggle_ups, toggle_genset
+    get_power_data,
+    toggle_transformer,
+    toggle_ups,
+    toggle_genset,
 )
-from simulator import simulate_chiller, simulate_transformer, simulate_ups, simulate_genset
-from voice_agent import transcribe_google, tts_play
-import base64
+from simulator import (
+    simulate_chiller,
+    simulate_transformer,
+    simulate_ups,
+    simulate_genset,
+)
+from voice_agent import transcribe_voice, tts_voice
+from utils import save_chillers, save_power
+
 
 # -------------------------------------------------------------
-# Modern Theme Page Config
+# Page config (dark style)
 # -------------------------------------------------------------
 st.set_page_config(
-    page_title="BMS Agent -MANISH SINGH  – Modern",
+    page_title="BMS AI Agent – MANISH SINGH",
     layout="wide",
-    page_icon="⚙️"
+    page_icon="⚙️",
 )
 
+
 # -------------------------------------------------------------
-# Sidebar Navigation
+# Common helpers
+# -------------------------------------------------------------
+def status_badge(status: str) -> str:
+    """Return HTML badge for ON / OFF."""
+    color = "#16d916" if status == "ON" else "#ff4d4d"
+    return (
+        f"<span style='background:{color}; padding:3px 10px; "
+        f"border-radius:12px; color:white; font-weight:bold;'>{status}</span>"
+    )
+
+
+def voice_agent_handle_command(text: str, chillers_data: dict, power_data: dict):
+    """
+    Simple rule-based 'agent' that interprets commands like:
+      - 'turn on chiller 5'
+      - 'set chiller 3 setpoint to 20'
+      - 'turn off transformer 2'
+      - 'turn on genset 3'
+      - 'switch off ups 1'
+    and updates the configs accordingly.
+    Returns (response_message, updated_chillers_data, updated_power_data).
+    """
+    t = text.lower()
+    response_parts = []
+
+    # ---------------- CHILLER CONTROL ----------------
+    if "chiller" in t:
+        m = re.search(r"chiller\s+(\d+)", t)
+        if m:
+            idx = int(m.group(1)) - 1
+            chillers = chillers_data["chillers"]
+            if 0 <= idx < len(chillers):
+                ch = chillers[idx]
+                if "setpoint" in t or "temperature" in t:
+                    m_sp = re.search(r"(\d+(\.\d+)?)", t)
+                    if m_sp:
+                        new_sp = float(m_sp.group(1))
+                        update_setpoint(chillers_data, idx, new_sp)
+                        response_parts.append(
+                            f"Setpoint for {ch['name']} updated to {new_sp:.1f} °C."
+                        )
+                elif "on" in t:
+                    ch["status"] = "ON"
+                    response_parts.append(f"{ch['name']} turned ON.")
+                elif "off" in t:
+                    ch["status"] = "OFF"
+                    response_parts.append(f"{ch['name']} turned OFF.")
+                else:
+                    ch["status"] = "OFF" if ch["status"] == "ON" else "ON"
+                    response_parts.append(
+                        f"Toggled {ch['name']} to {ch['status']}."
+                    )
+            else:
+                response_parts.append("Chiller index out of range.")
+
+    # ---------------- TRANSFORMER CONTROL ----------------
+    if "transformer" in t or "tr" in t:
+        m = re.search(r"(transformer|tr)\s*([0-9]+)", t)
+        if m:
+            idx = int(m.group(2)) - 1
+            if 0 <= idx < len(power_data["transformers"]):
+                tr = power_data["transformers"][idx]
+                if "on" in t:
+                    tr["status"] = "ON"
+                    response_parts.append(f"{tr['name']} turned ON.")
+                elif "off" in t:
+                    tr["status"] = "OFF"
+                    response_parts.append(f"{tr['name']} turned OFF.")
+                else:
+                    tr["status"] = "OFF" if tr["status"] == "ON" else "ON"
+                    response_parts.append(
+                        f"Toggled {tr['name']} to {tr['status']}."
+                    )
+
+    # ---------------- UPS CONTROL ----------------
+    if "ups" in t:
+        m = re.search(r"ups\s*([0-9]+)", t)
+        if m:
+            idx = int(m.group(1)) - 1
+            if 0 <= idx < len(power_data["ups"]):
+                u = power_data["ups"][idx]
+                if "on" in t:
+                    u["status"] = "ON"
+                    response_parts.append(f"{u['name']} turned ON.")
+                elif "off" in t:
+                    u["status"] = "OFF"
+                    response_parts.append(f"{u['name']} turned OFF.")
+                else:
+                    u["status"] = "OFF" if u["status"] == "ON" else "ON"
+                    response_parts.append(
+                        f"Toggled {u['name']} to {u['status']}."
+                    )
+
+    # ---------------- GENSET CONTROL ----------------
+    if "genset" in t or re.search(r"\bg\s*[0-9]+", t):
+        m = re.search(r"(genset|g)\s*([0-9]+)", t)
+        if m:
+            idx = int(m.group(2)) - 1
+            if 0 <= idx < len(power_data["genset"]):
+                g = power_data["genset"][idx]
+                if "on" in t:
+                    g["status"] = "ON"
+                    response_parts.append(f"{g['name']} turned ON.")
+                elif "off" in t:
+                    g["status"] = "OFF"
+                    response_parts.append(f"{g['name']} turned OFF.")
+                else:
+                    g["status"] = "OFF" if g["status"] == "ON" else "ON"
+                    response_parts.append(
+                        f"Toggled {g['name']} to {g['status']}."
+                    )
+
+    if not response_parts:
+        response_parts.append(
+            "I understood the text but could not map it to any control action."
+        )
+
+    # Save configs after modifications
+    save_chillers(chillers_data)
+    save_power(power_data)
+
+    return " ".join(response_parts), chillers_data, power_data
+
+
+# -------------------------------------------------------------
+# Sidebar navigation
 # -------------------------------------------------------------
 menu = st.sidebar.radio(
-    "📌 Navigation",
+    "Navigation",
     ["Chillers", "Power Control", "Voice Assistant"],
-    index=0
+    index=0,
 )
 
 st.sidebar.markdown("---")
-st.sidebar.success("Modern UI Active")
+st.sidebar.markdown(
+    "<div style='color:#9fa6b2;font-size:13px;'>Dark BMS UI • Manish Singh</div>",
+    unsafe_allow_html=True,
+)
 
-# -------------------------------------------------------------
-# Helper: Status Badge
-# -------------------------------------------------------------
-def status_badge(status):
-    color = "#16d916" if status == "ON" else "#ff4d4d"
-    return f"<span style='background:{color}; padding:3px 10px; border-radius:12px; color:white; font-weight:bold;'>{status}</span>"
 
 # -------------------------------------------------------------
 # CHILLER DASHBOARD
 # -------------------------------------------------------------
 if menu == "Chillers":
-    st.title("Chiller Dashboard – Modern UI")
+    st.title(" Chiller Dashboard – Dark Theme")
 
     data = get_chiller_data()
     chillers = data["chillers"]
@@ -60,60 +194,75 @@ if menu == "Chillers":
             with row[j]:
                 st.markdown(
                     f"""
-                    <div style='background:#273346; padding:15px; border-radius:10px;'>
-                        <h4 style='color:white; text-align:center;'>{ch["name"]}</h4>
-                        <p>Status: {status_badge(ch["status"])}</p>
-                        <hr style='border:1px solid #3a4a5b;'>
-                        <p><b>Setpoint:</b> {ch["setpoint"]} °C</p>
-                        <p><b>Supply Temp:</b> {sim["supply"]} °C</p>
-                        <p><b>Inlet Temp:</b> {sim["inlet"]} °C</p>
-                        <p><b>Outlet Temp:</b> {sim["outlet"]} °C</p>
-                        <p><b>Ambient Temp:</b> {sim["ambient"]} °C</p>
-                        <p><b>Comp-1:</b> {sim["comp1"]}%</p>
-                        <p><b>Comp-2:</b> {sim["comp2"]}%</p>
-                        <p><b>Power:</b> {sim["power"]} kW</p>
-                        <p><b>Flow:</b> {sim["flow"]} m³/hr</p>
+                    <div style='background:#111827; padding:14px; border-radius:10px;
+                                border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
+                        <h4 style='color:#e5e7eb; text-align:center; margin-bottom:4px;'>{ch["name"]}</h4>
+                        <div style='text-align:center; margin-bottom:6px;'>
+                            Status: {status_badge(ch["status"])}
+                        </div>
+                        <hr style='border:1px solid #1f2937;'>
+                        <p style='color:#d1d5db; font-size:13px;'>
+                            <b>Setpoint:</b> {ch["setpoint"]} °C<br>
+                            <b>Supply Temp:</b> {sim["supply"]} °C<br>
+                            <b>Inlet Temp:</b> {sim["inlet"]} °C<br>
+                            <b>Outlet Temp:</b> {sim["outlet"]} °C<br>
+                            <b>Ambient Temp:</b> {sim["ambient"]} °C<br>
+                            <b>Comp-1:</b> {sim["comp1"]}%<br>
+                            <b>Comp-2:</b> {sim["comp2"]}%<br>
+                            <b>Power:</b> {sim["power"]} kW<br>
+                            <b>Flow:</b> {sim["flow"]} m³/hr<br>
+                        </p>
                     </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
-                if st.button(f"Toggle {ch['name']}", key=f"chg_{idx}"):
-                    data = toggle_chiller(data, idx)
-                    st.rerun()
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    if st.button("Toggle", key=f"chg_{idx}"):
+                        data = toggle_chiller(data, idx)
+                        st.rerun()
+                with c2:
+                    new_sp = st.slider(
+                        f"SP {ch['name']}",
+                        min_value=16.0,
+                        max_value=26.0,
+                        value=float(ch["setpoint"]),
+                        step=0.1,
+                        key=f"sp_{idx}",
+                    )
+                    if new_sp != ch["setpoint"]:
+                        data = update_setpoint(data, idx, new_sp)
 
-                new_sp = st.slider(
-                    f"Setpoint {ch['name']}", 16.0, 26.0, ch["setpoint"], 0.1
-                )
-                if new_sp != ch["setpoint"]:
-                    data = update_setpoint(data, idx, new_sp)
 
 # -------------------------------------------------------------
 # POWER CONTROL DASHBOARD
 # -------------------------------------------------------------
 elif menu == "Power Control":
-    st.title("Power Control – Modern UI")
+    st.title(" Power Control")
 
     power = get_power_data()
 
     # -------------------- Transformers --------------------
-    st.header(" Transformers")
-
+    st.subheader(" Transformers (TR1 – TR10)")
     cols = st.columns(3)
     for idx, tr in enumerate(power["transformers"]):
         sim = simulate_transformer(tr)
         with cols[idx % 3]:
             st.markdown(
                 f"""
-                <div style='background:#2d2d2d; padding:15px; border-radius:10px;'>
-                    <h4 style='color:#4ad1ff;'>{tr["name"]}</h4>
-                    Status: {status_badge(tr["status"])}<br><br>
-                    <b>Voltage:</b> {sim["voltage"]} V<br>
-                    <b>Current:</b> {sim["current"]} A<br>
-                    <b>Power:</b> {sim["power"]} kW<br>
+                <div style='background:#111827; padding:14px; border-radius:10px;
+                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
+                    <h4 style='color:#60a5fa;'>{tr["name"]}</h4>
+                    <div>Status: {status_badge(tr["status"])}</div>
+                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                        <b>Voltage:</b> {sim["voltage"]} V<br>
+                        <b>Current:</b> {sim["current"]} A<br>
+                        <b>Power:</b> {sim["power"]} kW<br>
+                    </p>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
             if st.button(f"Toggle {tr['name']}", key=f"tr_{idx}"):
                 toggle_transformer(power, idx)
@@ -122,69 +271,100 @@ elif menu == "Power Control":
     st.markdown("---")
 
     # -------------------- UPS --------------------
-    st.header("UPS Units")
-
+    st.subheader(" UPS Units (UPS1 – UPS5)")
     cols = st.columns(3)
     for idx, u in enumerate(power["ups"]):
         sim = simulate_ups(u)
         with cols[idx % 3]:
             st.markdown(
                 f"""
-                <div style='background:#2d2d2d; padding:15px; border-radius:10px;'>
-                    <h4 style='color:#7aff7a;'>{u["name"]}</h4>
-                    Status: {status_badge(u["status"])}<br><br>
-                    <b>Voltage:</b> {sim["voltage"]} V<br>
-                    <b>Current:</b> {sim["current"]} A<br>
-                    <b>Power:</b> {sim["power"]} kW<br>
-                    <b>Load:</b> {sim["load"]}%<br>
+                <div style='background:#111827; padding:14px; border-radius:10px;
+                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
+                    <h4 style='color:#34d399;'>{u["name"]}</h4>
+                    <div>Status: {status_badge(u["status"])}</div>
+                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                        <b>Voltage:</b> {sim["voltage"]} V<br>
+                        <b>Current:</b> {sim["current"]} A<br>
+                        <b>Power:</b> {sim["power"]} kW<br>
+                        <b>Load:</b> {sim["load"]}%<br>
+                    </p>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
-            if st.button(f"Toggle UPS {u['name']}", key=f"ups_{idx}"):
+            if st.button(f"Toggle {u['name']}", key=f"ups_{idx}"):
                 toggle_ups(power, idx)
                 st.rerun()
 
     st.markdown("---")
 
     # -------------------- Gensets --------------------
-    st.header(" Gensets")
-
+    st.subheader(" Gensets (G1 – G10)")
     cols = st.columns(3)
     for idx, g in enumerate(power["genset"]):
         sim = simulate_genset(g)
         with cols[idx % 3]:
             st.markdown(
                 f"""
-                <div style='background:#2d2d2d; padding:15px; border-radius:10px;'>
-                    <h4 style='color:#ffaa4a;'>{g["name"]}</h4>
-                    Status: {status_badge(g["status"])}<br><br>
-                    <b>Voltage:</b> {sim["voltage"]} V<br>
-                    <b>Current:</b> {sim["current"]} A<br>
-                    <b>Power:</b> {sim["power"]} kW<br>
-                    <b>Load:</b> {sim["load"]}%<br>
+                <div style='background:#111827; padding:14px; border-radius:10px;
+                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
+                    <h4 style='color:#f97316;'>{g["name"]}</h4>
+                    <div>Status: {status_badge(g["status"])}</div>
+                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                        <b>Voltage:</b> {sim["voltage"]} V<br>
+                        <b>Current:</b> {sim["current"]} A<br>
+                        <b>Power:</b> {sim["power"]} kW<br>
+                        <b>Load:</b> {sim["load"]}%<br>
+                    </p>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
             if st.button(f"Toggle {g['name']}", key=f"gen_{idx}"):
                 toggle_genset(power, idx)
                 st.rerun()
 
+
 # -------------------------------------------------------------
-# VOICE ASSISTANT
+# VOICE ASSISTANT PAGE – FREE STT + TTS
 # -------------------------------------------------------------
 elif menu == "Voice Assistant":
-    st.title(" Voice Assistant – Google Cloud STT")
+    st.title(" Voice Assistant – Free STT + TTS (SpeechRecognition + gTTS)")
 
-    file = st.file_uploader("Upload WAV audio", type=["wav"])
-    if file:
-        audio_bytes = file.read()
-        with st.spinner("Transcribing..."):
-            text = transcribe_google(audio_bytes)
-        st.success(f"You said: **{text}**")
+    st.write(
+        "Upload a short **WAV** file with a command like "
+        "`turn on chiller 5`, `set chiller 3 setpoint to 20`, "
+        "`turn off transformer 2`, `turn on genset 4`, `turn off ups 1`, etc.\n\n"
+        "The app will:\n"
+        "1. Convert your voice to text using free Google Web Speech API (no key).\n"
+        "2. Apply the BMS control rule engine.\n"
+        "3. Reply back in synthetic voice using gTTS."
+    )
 
-        # TTS reply
-        reply_audio = tts_play(text)
-        st.audio(reply_audio, format="audio/wav")
+    audio_file = st.file_uploader("Upload WAV file (16-bit PCM recommended)", type=["wav"])
+    if audio_file is not None:
+        raw_bytes = audio_file.read()
+        with st.spinner("Transcribing with free SpeechRecognition (Google Web API)..."):
+            text = transcribe_voice(raw_bytes)
 
+        if not text:
+            st.error("No speech recognized or STT error. Try again with a clearer recording.")
+        else:
+            st.success(f"Recognized text: **{text}**")
+
+            # Load current configs
+            chillers_data = get_chiller_data()
+            power_data = get_power_data()
+
+            # Let rule-based 'agent' handle it
+            reply_text, chillers_data, power_data = voice_agent_handle_command(
+                text, chillers_data, power_data
+            )
+
+            st.info(f"Agent reply: {reply_text}")
+
+            # TTS via gTTS
+            with st.spinner("Generating spoken reply with gTTS..."):
+                audio_out = tts_voice(reply_text)
+
+            st.audio(audio_out, format="audio/mp3")
