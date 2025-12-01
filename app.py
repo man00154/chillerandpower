@@ -451,6 +451,16 @@ elif menu == "Alarms & Events":
         for al in filtered:
             explanation = explain_alarm(al)
 
+            # choose color by severity
+            if al["severity"] == "Critical":
+                sev_color = "#f97373"
+            elif al["severity"] == "Major":
+                sev_color = "#facc15"
+            elif al["severity"] == "Minor":
+                sev_color = "#4ade80"
+            else:
+                sev_color = "#60a5fa"
+
             st.markdown(
                 f"""
                 <div style='background:#111827; padding:14px; border-radius:10px;
@@ -462,7 +472,7 @@ elif menu == "Alarms & Events":
                         </div>
                         <div>
                             <span style='color:#9ca3af; font-size:12px;'>Severity</span><br>
-                            <span style='color:{ "#f97373" if al["severity"]=="Critical" else "#facc15" if al["severity"]=="Major" else "#4ade80" if al["severity"]=="Minor" else "#60a5fa" }; font-weight:bold;'>
+                            <span style='color:{sev_color}; font-weight:bold;'>
                                 {al["severity"]}
                             </span>
                         </div>
@@ -484,4 +494,8 @@ elif menu == "Alarms & Events":
                     </div>
                     <div style='margin-top:4px; color:#93c5fd; font-size:13px;'>
                         <b>Recommended action:</b> {explanation["action"]}
-
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
