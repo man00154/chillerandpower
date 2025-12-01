@@ -7,23 +7,25 @@ from power_manager import (
     toggle_transformer,
     toggle_ups,
     toggle_genset,
+    toggle_pahu,      # NEW
 )
 from simulator import (
     simulate_chiller,
     simulate_transformer,
     simulate_ups,
     simulate_genset,
+    simulate_pahu,    # NEW
 )
 from voice_agent import transcribe_voice, tts_voice
 from utils import save_chillers, save_power
-from alarms_agent import get_simulated_alarms, explain_alarm  # NEW
+from alarms_agent import get_simulated_alarms, explain_alarm
 
 
 # -------------------------------------------------------------
 # Page config (dark style)
 # -------------------------------------------------------------
 st.set_page_config(
-    page_title="BMS AI Agent – MANISH SINGH",
+    page_title="BMS AI Agent - MANISH SINGH",
     layout="wide",
     page_icon="⚙️",
 )
@@ -155,7 +157,7 @@ def voice_agent_handle_command(text: str, chillers_data: dict, power_data: dict)
 
 
 # -------------------------------------------------------------
-# Sidebar navigation  (ADDED “Alarms & Events”)
+# Sidebar navigation
 # -------------------------------------------------------------
 menu = st.sidebar.radio(
     " Navigation",
@@ -174,7 +176,7 @@ st.sidebar.markdown(
 # CHILLER DASHBOARD
 # -------------------------------------------------------------
 if menu == "Chillers":
-    st.title(" Chiller Dashboard – Dark Theme")
+    st.title(" Chiller Dashboard – MANISH SINGH")
 
     data = get_chiller_data()
     chillers = data["chillers"]
@@ -272,7 +274,7 @@ elif menu == "Power Control":
     st.markdown("---")
 
     # -------------------- UPS --------------------
-    st.subheader(" UPS Units (UPS1 – UPS5)")
+    st.subheader(" UPS Units (UPS1 – UPS4)")
     cols = st.columns(3)
     for idx, u in enumerate(power["ups"]):
         sim = simulate_ups(u)
@@ -300,7 +302,7 @@ elif menu == "Power Control":
     st.markdown("---")
 
     # -------------------- Gensets --------------------
-    st.subheader(" Gensets (G1 – G10)")
+    st.subheader(" Gensets (G1 – G7)")
     cols = st.columns(3)
     for idx, g in enumerate(power["genset"]):
         sim = simulate_genset(g)
@@ -325,12 +327,41 @@ elif menu == "Power Control":
                 toggle_genset(power, idx)
                 st.rerun()
 
+    st.markdown("---")
+
+    # -------------------- PAHU --------------------
+    st.subheader(" PAHU Units (PAHU1 – PAHU4)")
+    cols = st.columns(2)
+    for idx, p in enumerate(power["pahu"]):
+        sim = simulate_pahu(p)
+        with cols[idx % 2]:
+            st.markdown(
+                f"""
+                <div style='background:#111827; padding:14px; border-radius:10px;
+                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
+                    <h4 style='color:#22c55e;'>{p["name"]}</h4>
+                    <div>Status: {status_badge(p["status"])}</div>
+                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                        <b>Supply Air Temp:</b> {sim["supply_air_temp"]} °C<br>
+                        <b>Return Air Temp:</b> {sim["return_air_temp"]} °C<br>
+                        <b>Airflow:</b> {sim["airflow"]} CFM<br>
+                        <b>Power:</b> {sim["power"]} kW<br>
+                        <b>Filter ΔP:</b> {sim["filter_dp"]} in WG<br>
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(f"Toggle {p['name']}", key=f"pahu_{idx}"):
+                toggle_pahu(power, idx)
+                st.rerun()
+
 
 # -------------------------------------------------------------
 # VOICE ASSISTANT PAGE – FREE STT + TTS
 # -------------------------------------------------------------
 elif menu == "Voice Assistant":
-    st.title(" Voice Assistant – Free STT + TTS (SpeechRecognition + gTTS)")
+    st.title("Voice Assistant – Free STT + TTS (SpeechRecognition + gTTS)")
 
     st.write(
         "Upload a short **WAV** file with a command like "
