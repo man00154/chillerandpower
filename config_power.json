@@ -1,15 +1,32 @@
 {
   "transformers": [
     { "name": "TR1", "status": "ON" },
-    { "name": "TR2", "status": "OFF" },
-    { "name": "TR3", "status": "ON" }
+    { "name": "TR2", "status": "ON" },
+    { "name": "TR3", "status": "ON" },
+    { "name": "TR4", "status": "ON" },
+    { "name": "TR5", "status": "ON" },
+    { "name": "TR6", "status": "ON" },
+    { "name": "TR7", "status": "ON" }
   ],
   "ups": [
     { "name": "UPS1", "status": "ON" },
-    { "name": "UPS2", "status": "ON" }
+    { "name": "UPS2", "status": "ON" },
+    { "name": "UPS3", "status": "ON" },
+    { "name": "UPS4", "status": "ON" }
   ],
   "genset": [
     { "name": "G1", "status": "OFF" },
-    { "name": "G2", "status": "OFF" }
+    { "name": "G2", "status": "OFF" },
+    { "name": "G3", "status": "OFF" },
+    { "name": "G4", "status": "OFF" },
+    { "name": "G5", "status": "OFF" },
+    { "name": "G6", "status": "OFF" },
+    { "name": "G7", "status": "OFF" }
+  ],
+  "pahu": [
+    { "name": "PAHU1", "status": "ON" },
+    { "name": "PAHU2", "status": "ON" },
+    { "name": "PAHU3", "status": "ON" },
+    { "name": "PAHU4", "status": "ON" }
   ]
 }
