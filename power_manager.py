@@ -24,3 +24,11 @@ def toggle_genset(power_data: dict, idx: int):
     g["status"] = "OFF" if g["status"] == "ON" else "ON"
     save_power(power_data)
     return power_data
+
+
+def toggle_pahu(power_data: dict, idx: int):
+    """Toggle PAHU ON/OFF."""
+    p = power_data["pahu"][idx]
+    p["status"] = "OFF" if p["status"] == "ON" else "ON"
+    save_power(power_data)
+    return power_data
