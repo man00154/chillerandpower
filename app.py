@@ -16,6 +16,7 @@ from simulator import (
 )
 from voice_agent import transcribe_voice, tts_voice
 from utils import save_chillers, save_power
+from alarms_agent import get_simulated_alarms, explain_alarm  # NEW
 
 
 # -------------------------------------------------------------
@@ -154,11 +155,11 @@ def voice_agent_handle_command(text: str, chillers_data: dict, power_data: dict)
 
 
 # -------------------------------------------------------------
-# Sidebar navigation
+# Sidebar navigation  (ADDED “Alarms & Events”)
 # -------------------------------------------------------------
 menu = st.sidebar.radio(
-    "Navigation",
-    ["Chillers", "Power Control", "Voice Assistant"],
+    " Navigation",
+    ["Chillers", "Power Control", "Voice Assistant", "Alarms & Events"],
     index=0,
 )
 
@@ -239,7 +240,7 @@ if menu == "Chillers":
 # POWER CONTROL DASHBOARD
 # -------------------------------------------------------------
 elif menu == "Power Control":
-    st.title(" Power Control")
+    st.title(" Power Control – Dark Theme")
 
     power = get_power_data()
 
@@ -368,3 +369,86 @@ elif menu == "Voice Assistant":
                 audio_out = tts_voice(reply_text)
 
             st.audio(audio_out, format="audio/mp3")
+
+
+# -------------------------------------------------------------
+# ALARMS & EVENTS PAGE – Simulated alarms + rule-based “AI” explanation
+# -------------------------------------------------------------
+elif menu == "Alarms & Events":
+    st.title(" Alarms & Events – BMS AI Explain")
+
+    st.write(
+        "This page simulates data center BMS alarms from chillers, transformers, "
+        "UPS, gensets and environment. A simple rule-based AI explains the "
+        "probable root cause and recommended operator action."
+    )
+
+    alarms = get_simulated_alarms()
+
+    # Optional filters
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        system_filter = st.selectbox(
+            "Filter by system",
+            options=["All", "Chiller", "Power", "UPS", "Genset", "Environment"],
+            index=0,
+        )
+    with col_f2:
+        severity_filter = st.selectbox(
+            "Filter by severity",
+            options=["All", "Critical", "Major", "Minor", "Info"],
+            index=0,
+        )
+
+    filtered = []
+    for al in alarms:
+        if system_filter != "All" and al["system"] != system_filter:
+            continue
+        if severity_filter != "All" and al["severity"] != severity_filter:
+            continue
+        filtered.append(al)
+
+    if not filtered:
+        st.info("No alarms matching the selected filters.")
+    else:
+        for al in filtered:
+            explanation = explain_alarm(al)
+
+            st.markdown(
+                f"""
+                <div style='background:#111827; padding:14px; border-radius:10px;
+                            border:1px solid #1f2937; margin-bottom:12px;'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <div>
+                            <span style='color:#9ca3af; font-size:12px;'>Time</span>
+                            <div style='color:#e5e7eb; font-size:13px;'>{al["timestamp"]}</div>
+                        </div>
+                        <div>
+                            <span style='color:#9ca3af; font-size:12px;'>Severity</span><br>
+                            <span style='color:{ "#f97373" if al["severity"]=="Critical" else "#facc15" if al["severity"]=="Major" else "#4ade80" if al["severity"]=="Minor" else "#60a5fa" }; font-weight:bold;'>
+                                {al["severity"]}
+                            </span>
+                        </div>
+                        <div>
+                            <span style='color:#9ca3af; font-size:12px;'>System</span>
+                            <div style='color:#e5e7eb; font-size:13px;'>{al["system"]}</div>
+                        </div>
+                        <div>
+                            <span style='color:#9ca3af; font-size:12px;'>Source</span>
+                            <div style='color:#e5e7eb; font-size:13px;'>{al["source"]}</div>
+                        </div>
+                    </div>
+                    <hr style='border:1px solid #1f2937; margin-top:8px; margin-bottom:8px;'>
+                    <div style='color:#e5e7eb; font-size:14px;'>
+                        <b>Alarm:</b> {al["message"]}
+                    </div>
+                    <div style='margin-top:6px; color:#fbbf24; font-size:13px;'>
+                        <b>Probable root cause:</b> {explanation["root_cause"]}
+                    </div>
+                    <div style='margin-top:4px; color:#93c5fd; font-size:13px;'>
+                        <b>Recommended action:</b> {explanation["action"]}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
