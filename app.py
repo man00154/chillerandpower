@@ -7,14 +7,14 @@ from power_manager import (
     toggle_transformer,
     toggle_ups,
     toggle_genset,
-    toggle_pahu,      # NEW
+    toggle_pahu,
 )
 from simulator import (
     simulate_chiller,
     simulate_transformer,
     simulate_ups,
     simulate_genset,
-    simulate_pahu,    # NEW
+    simulate_pahu,
 )
 from voice_agent import transcribe_voice, tts_voice
 from utils import save_chillers, save_power
@@ -25,7 +25,7 @@ from alarms_agent import get_simulated_alarms, explain_alarm
 # Page config (dark style)
 # -------------------------------------------------------------
 st.set_page_config(
-    page_title="BMS AI Agent - MANISH SINGH",
+    page_title="BMS AI Agent – MANISH SINGH",
     layout="wide",
     page_icon="⚙️",
 )
@@ -173,16 +173,17 @@ st.sidebar.markdown(
 
 
 # -------------------------------------------------------------
-# CHILLER DASHBOARD
+# CHILLER DASHBOARD – 30 chillers, 3×10 grid
 # -------------------------------------------------------------
 if menu == "Chillers":
-    st.title(" Chiller Dashboard – MANISH SINGH")
+    st.title(" Chiller Dashboard- MANISH SINGH")
 
     data = get_chiller_data()
     chillers = data["chillers"]
 
+    # 3 columns × 10 rows for 30 chillers
     cols_per_row = 3
-    rows = len(chillers) // cols_per_row + 1
+    rows = len(chillers) // cols_per_row + (1 if len(chillers) % cols_per_row else 0)
 
     for i in range(rows):
         row = st.columns(cols_per_row)
@@ -239,129 +240,125 @@ if menu == "Chillers":
 
 
 # -------------------------------------------------------------
-# POWER CONTROL DASHBOARD
+# POWER CONTROL DASHBOARD – 7×1 TR, 7×1 G, 4×1 UPS, 4×1 PAHU
 # -------------------------------------------------------------
 elif menu == "Power Control":
-    st.title(" Power Control – Dark Theme")
+    st.title(" Power Control")
 
     power = get_power_data()
 
-    # -------------------- Transformers --------------------
-    st.subheader(" Transformers (TR1 – TR10)")
-    cols = st.columns(3)
+    # -------------------- Transformers 7×1 --------------------
+    st.subheader(" Transformers (TR1 – TR7)")
     for idx, tr in enumerate(power["transformers"]):
         sim = simulate_transformer(tr)
-        with cols[idx % 3]:
-            st.markdown(
-                f"""
-                <div style='background:#111827; padding:14px; border-radius:10px;
-                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
-                    <h4 style='color:#60a5fa;'>{tr["name"]}</h4>
-                    <div>Status: {status_badge(tr["status"])}</div>
-                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
-                        <b>Voltage:</b> {sim["voltage"]} V<br>
-                        <b>Current:</b> {sim["current"]} A<br>
-                        <b>Power:</b> {sim["power"]} kW<br>
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button(f"Toggle {tr['name']}", key=f"tr_{idx}"):
-                toggle_transformer(power, idx)
-                st.rerun()
+        st.markdown(
+            f"""
+            <div style='background:#111827; padding:14px; border-radius:10px;
+                        border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);
+                        margin-bottom:10px;'>
+                <h4 style='color:#60a5fa;'>{tr["name"]}</h4>
+                <div>Status: {status_badge(tr["status"])}</div>
+                <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                    <b>Voltage:</b> {sim["voltage"]} V<br>
+                    <b>Current:</b> {sim["current"]} A<br>
+                    <b>Power:</b> {sim["power"]} kW<br>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(f"Toggle {tr['name']}", key=f"tr_{idx}"):
+            toggle_transformer(power, idx)
+            st.rerun()
 
     st.markdown("---")
 
-    # -------------------- UPS --------------------
+    # -------------------- UPS 4×1 --------------------
     st.subheader(" UPS Units (UPS1 – UPS4)")
-    cols = st.columns(3)
     for idx, u in enumerate(power["ups"]):
         sim = simulate_ups(u)
-        with cols[idx % 3]:
-            st.markdown(
-                f"""
-                <div style='background:#111827; padding:14px; border-radius:10px;
-                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
-                    <h4 style='color:#34d399;'>{u["name"]}</h4>
-                    <div>Status: {status_badge(u["status"])}</div>
-                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
-                        <b>Voltage:</b> {sim["voltage"]} V<br>
-                        <b>Current:</b> {sim["current"]} A<br>
-                        <b>Power:</b> {sim["power"]} kW<br>
-                        <b>Load:</b> {sim["load"]}%<br>
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button(f"Toggle {u['name']}", key=f"ups_{idx}"):
-                toggle_ups(power, idx)
-                st.rerun()
+        st.markdown(
+            f"""
+            <div style='background:#111827; padding:14px; border-radius:10px;
+                        border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);
+                        margin-bottom:10px;'>
+                <h4 style='color:#34d399;'>{u["name"]}</h4>
+                <div>Status: {status_badge(u["status"])}</div>
+                <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                    <b>Voltage:</b> {sim["voltage"]} V<br>
+                    <b>Current:</b> {sim["current"]} A<br>
+                    <b>Power:</b> {sim["power"]} kW<br>
+                    <b>Load:</b> {sim["load"]}%<br>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(f"Toggle {u['name']}", key=f"ups_{idx}"):
+            toggle_ups(power, idx)
+            st.rerun()
 
     st.markdown("---")
 
-    # -------------------- Gensets --------------------
+    # -------------------- Gensets 7×1 --------------------
     st.subheader(" Gensets (G1 – G7)")
-    cols = st.columns(3)
     for idx, g in enumerate(power["genset"]):
         sim = simulate_genset(g)
-        with cols[idx % 3]:
-            st.markdown(
-                f"""
-                <div style='background:#111827; padding:14px; border-radius:10px;
-                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
-                    <h4 style='color:#f97316;'>{g["name"]}</h4>
-                    <div>Status: {status_badge(g["status"])}</div>
-                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
-                        <b>Voltage:</b> {sim["voltage"]} V<br>
-                        <b>Current:</b> {sim["current"]} A<br>
-                        <b>Power:</b> {sim["power"]} kW<br>
-                        <b>Load:</b> {sim["load"]}%<br>
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button(f"Toggle {g['name']}", key=f"gen_{idx}"):
-                toggle_genset(power, idx)
-                st.rerun()
+        st.markdown(
+            f"""
+            <div style='background:#111827; padding:14px; border-radius:10px;
+                        border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);
+                        margin-bottom:10px;'>
+                <h4 style='color:#f97316;'>{g["name"]}</h4>
+                <div>Status: {status_badge(g["status"])}</div>
+                <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                    <b>Voltage:</b> {sim["voltage"]} V<br>
+                    <b>Current:</b> {sim["current"]} A<br>
+                    <b>Power:</b> {sim["power"]} kW<br>
+                    <b>Load:</b> {sim["load"]}%<br>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(f"Toggle {g['name']}", key=f"gen_{idx}"):
+            toggle_genset(power, idx)
+            st.rerun()
 
     st.markdown("---")
 
-    # -------------------- PAHU --------------------
+    # -------------------- PAHU 4×1 --------------------
     st.subheader(" PAHU Units (PAHU1 – PAHU4)")
-    cols = st.columns(2)
     for idx, p in enumerate(power["pahu"]):
         sim = simulate_pahu(p)
-        with cols[idx % 2]:
-            st.markdown(
-                f"""
-                <div style='background:#111827; padding:14px; border-radius:10px;
-                            border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);'>
-                    <h4 style='color:#22c55e;'>{p["name"]}</h4>
-                    <div>Status: {status_badge(p["status"])}</div>
-                    <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
-                        <b>Supply Air Temp:</b> {sim["supply_air_temp"]} °C<br>
-                        <b>Return Air Temp:</b> {sim["return_air_temp"]} °C<br>
-                        <b>Airflow:</b> {sim["airflow"]} CFM<br>
-                        <b>Power:</b> {sim["power"]} kW<br>
-                        <b>Filter ΔP:</b> {sim["filter_dp"]} in WG<br>
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            if st.button(f"Toggle {p['name']}", key=f"pahu_{idx}"):
-                toggle_pahu(power, idx)
-                st.rerun()
+        st.markdown(
+            f"""
+            <div style='background:#111827; padding:14px; border-radius:10px;
+                        border:1px solid #1f2937; box-shadow:0 0 10px rgba(0,0,0,0.35);
+                        margin-bottom:10px;'>
+                <h4 style='color:#22c55e;'>{p["name"]}</h4>
+                <div>Status: {status_badge(p["status"])}</div>
+                <p style='color:#d1d5db; font-size:13px; margin-top:8px;'>
+                    <b>Supply Air Temp:</b> {sim["supply_air_temp"]} °C<br>
+                    <b>Return Air Temp:</b> {sim["return_air_temp"]} °C<br>
+                    <b>Airflow:</b> {sim["airflow"]} CFM<br>
+                    <b>Power:</b> {sim["power"]} kW<br>
+                    <b>Filter ΔP:</b> {sim["filter_dp"]} in WG<br>
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(f"Toggle {p['name']}", key=f"pahu_{idx}"):
+            toggle_pahu(power, idx)
+            st.rerun()
 
 
 # -------------------------------------------------------------
 # VOICE ASSISTANT PAGE – FREE STT + TTS
 # -------------------------------------------------------------
 elif menu == "Voice Assistant":
-    st.title("Voice Assistant – Free STT + TTS (SpeechRecognition + gTTS)")
+    st.title(" Voice Assistant – Free STT + TTS (SpeechRecognition + gTTS)")
 
     st.write(
         "Upload a short **WAV** file with a command like "
