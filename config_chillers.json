@@ -1,7 +1,36 @@
 {
   "chillers": [
-    { "name": "CH-1", "status": "OFF", "setpoint": 21 },
-    { "name": "CH-2", "status": "OFF", "setpoint": 21 },
-    { "name": "CH-3", "status": "OFF", "setpoint": 21 }
+    { "name": "CH-1",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-2",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-3",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-4",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-5",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-6",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-7",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-8",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-9",  "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-10", "status": "OFF", "setpoint": 21.0 },
+
+    { "name": "CH-11", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-12", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-13", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-14", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-15", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-16", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-17", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-18", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-19", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-20", "status": "OFF", "setpoint": 21.0 },
+
+    { "name": "CH-21", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-22", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-23", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-24", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-25", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-26", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-27", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-28", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-29", "status": "OFF", "setpoint": 21.0 },
+    { "name": "CH-30", "status": "OFF", "setpoint": 21.0 }
   ]
 }
