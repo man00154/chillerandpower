@@ -178,66 +178,75 @@ st.sidebar.markdown(
 if menu == "Chillers":
     st.header("Chiller Plant – 30 Units (3 × 10 Grid)")
 
-NUM_CHILLERS = 30
-CHILLERS_PER_ROW = 10
+    data = get_chiller_data()
+    chillers = data["chillers"]  # list of 30 items: CH-1 ... CH-30
 
-for row in range(3):
-    cols = st.columns(CHILLERS_PER_ROW)
-    for col_idx in range(CHILLERS_PER_ROW):
-        ch_id = row * CHILLERS_PER_ROW + col_idx + 1
-        ch = config["chillers"][ch_id - 1]
-        sim = simulate_chiller_readings(ch["setpoint"])
-        col = cols[col_idx]
+    NUM_CHILLERS = len(chillers)          # should be 30
+    CHILLERS_PER_ROW = 10                 # 10 columns
+    rows = (NUM_CHILLERS + CHILLERS_PER_ROW - 1) // CHILLERS_PER_ROW  # 3 rows
 
-        # Blue header
-        col.markdown(
-            f"<div style='background:#004b80;color:white;text-align:center;"
-            f"padding:4px;font-size:12px;font-weight:bold;'>CH-{ch_id:02d}</div>",
-            unsafe_allow_html=True,
-        )
+    for row in range(rows):
+        cols = st.columns(CHILLERS_PER_ROW)
+        for col_idx in range(CHILLERS_PER_ROW):
+            ch_id = row * CHILLERS_PER_ROW + col_idx
+            if ch_id >= NUM_CHILLERS:
+                break
 
-        # Status bar
-        color = "#00aa00" if ch["status"] == "ON" else "#aa0000"
-        col.markdown(
-            f"<div style='background:{color};color:white;text-align:center;"
-            f"padding:4px;font-size:12px;'>STATUS: {ch['status']}</div>",
-            unsafe_allow_html=True,
-        )
+            ch = chillers[ch_id]
+            sim = simulate_chiller(ch)
 
-        # Data panel
-        col.markdown(
-            f"""
-            <div style='background:#111;padding:6px;font-size:11px;color:#ddd;'>
-                <b>Setpoint:</b> {ch['setpoint']}°C<br>
-                <b>Supply:</b> {sim['supply_temp']}°C<br>
-                <b>Inlet:</b> {sim['inlet_temp']}°C<br>
-                <b>Outlet:</b> {sim['outlet_temp']}°C<br>
-                <b>Ambient:</b> {sim['ambient_temp']}°C<br>
-                <b>Comp-1:</b> {sim['comp1']}%<br>
-                <b>Comp-2:</b> {sim['comp2']}%<br>
-                <b>Power:</b> {sim['power_kw']} kW<br>
-                <b>Flow:</b> {sim['water_flow']} m³/hr<br>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            col = cols[col_idx]
 
-        # Toggle button
-        if col.button(f"Toggle CH-{ch_id}", key=f"toggle_{ch_id}"):
-            ch["status"] = simulate_toggle_status(ch["status"])
-            config["chillers"][ch_id - 1] = ch
-            save_chiller_config(config)
-            st.rerun()
+            # Blue header
+            col.markdown(
+                f"<div style='background:#004b80;color:white;text-align:center;"
+                f"padding:4px;font-size:12px;font-weight:bold;'>{ch['name']}</div>",
+                unsafe_allow_html=True,
+            )
 
-        # Setpoint input
-        new_sp = col.number_input(
-            f"SP CH-{ch_id}", 16.0, 26.0, ch["setpoint"], 0.1,
-            key=f"sp_{ch_id}"
-        )
-        if new_sp != ch["setpoint"]:
-            ch["setpoint"] = new_sp
-            config["chillers"][ch_id - 1] = ch
-            save_chiller_config(config)
+            # Status bar
+            color = "#00aa00" if ch["status"] == "ON" else "#aa0000"
+            col.markdown(
+                f"<div style='background:{color};color:white;text-align:center;"
+                f"padding:4px;font-size:12px;'>STATUS: {ch['status']}</div>",
+                unsafe_allow_html=True,
+            )
+
+            # Data panel
+            col.markdown(
+                f"""
+                <div style='background:#111;padding:6px;font-size:11px;color:#ddd;'>
+                    <b>Setpoint:</b> {ch['setpoint']}°C<br>
+                    <b>Supply:</b> {sim['supply']}°C<br>
+                    <b>Inlet:</b> {sim['inlet']}°C<br>
+                    <b>Outlet:</b> {sim['outlet']}°C<br>
+                    <b>Ambient:</b> {sim['ambient']}°C<br>
+                    <b>Comp-1:</b> {sim['comp1']}%<br>
+                    <b>Comp-2:</b> {sim['comp2']}%<br>
+                    <b>Power:</b> {sim['power']} kW<br>
+                    <b>Flow:</b> {sim['flow']} m³/hr<br>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Toggle button
+            if col.button(f"Toggle {ch['name']}", key=f"toggle_{ch_id}"):
+                data = toggle_chiller(data, ch_id)
+                st.rerun()
+
+            # Setpoint input
+            new_sp = col.number_input(
+                f"SP {ch['name']}",
+                min_value=16.0,
+                max_value=26.0,
+                value=float(ch["setpoint"]),
+                step=0.1,
+                key=f"sp_{ch_id}",
+            )
+            if new_sp != ch["setpoint"]:
+                data = update_setpoint(data, ch_id, new_sp)
+
 
 # -------------------------------------------------------------
 # POWER CONTROL DASHBOARD – 7×1 TR, 7×1 G, 4×1 UPS, 4×1 PAHU
@@ -475,8 +484,4 @@ elif menu == "Alarms & Events":
                     </div>
                     <div style='margin-top:4px; color:#93c5fd; font-size:13px;'>
                         <b>Recommended action:</b> {explanation["action"]}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+::contentReference[oaicite:0]{index=0}
