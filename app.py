@@ -183,10 +183,14 @@ def voice_agent_handle_command(text: str, chillers_data: dict, power_data: dict)
 # -------------------------------------------------------------
 # Sidebar navigation
 # -------------------------------------------------------------
+# -------------------------------------------------------------
+# Sidebar navigation
+# -------------------------------------------------------------
 menu = st.sidebar.radio(
     " Navigation",
     ["Chillers", "Power Control", "Voice Assistant", "Alarms & Events"],
     index=0,
+    key="main_nav_menu",      # 👈 unique key fixes StreamlitDuplicateElementId
 )
 
 st.sidebar.markdown("---")
